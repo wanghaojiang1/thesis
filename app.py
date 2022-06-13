@@ -23,6 +23,11 @@ def add_header(response):
 def hello_world():
     return "<p>Hello, World!</p>"
 
+@app.route("/test")
+def test():
+    match_service.adjust_weights_collab(1830, True)
+    return "OK"
+
 @app.route("/purge")
 def purge():
     node_service.delete_nodes()
@@ -169,4 +174,4 @@ def label_truth_post():
     clusters = evaluation_service.get_ground_truth()
     return render_template("submit_ground_truth.html", nodes=nodes, clusters=clusters, success=True)
 
-app.run()
+app.run(debug=True)

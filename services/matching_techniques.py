@@ -15,7 +15,7 @@ VARIANTS = [{
 		'function': Coma,
 		'arguments': {
 			# 'strategy': "COMA_OPT"
-			'strategy': "COMA_INST"
+			'strategy': "COMA_OPT_INST"
 		},
 		'threshold': 0
 	},

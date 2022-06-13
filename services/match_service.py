@@ -49,15 +49,48 @@ def adjust_weights(edge_id, correct=False):
         if (key not in expert_weights.keys()):
             continue
         truth = 1 if correct else 0
+
         # MAYBE: punish experts based on how similar they think it is
         # DONE: the value that the expert gives is considered in the readjustment of the value
         new_weight = _decrease_weight(expert_weights[key], value, truth) if (bool(value > 0) ^ correct) else expert_weights[key]
-        print(new_weight)
         expert_weights.update({key: new_weight})
     
     _save_expert_weights(expert_weights)
     
     # TODO: label the edge such that we don't label everything more than once
+
+def adjust_weights_collab(edge_id, correct=False):
+    edge = node_service.get_match(edge_id)
+    expert_weights = get_raw_expert_weights()
+
+    if (not edge):
+        return
+    
+    # Calculate weighted score:
+    weighted_average = 0
+    total_weight = 0
+    for key, value in edge['scores'].items():
+        weight = value
+        score = edge['scores'][key]
+
+        weighted_average += weight * score
+        total_weight += weight
+    weighted_average = weighted_average/total_weight
+
+    truth = 1.0 if correct else 0.0
+
+    print(weighted_average)
+    print(truth)
+
+    print(truth - weighted_average)
+
+    diff = truth - weighted_average
+
+    # print(edge['scores'])
+
+    _save_expert_weights(expert_weights)
+
+
 
 def reset_expert_weights():
     raw_expert_weights = get_raw_expert_weights()
