@@ -77,20 +77,52 @@ def adjust_weights_collab(edge_id, correct=False):
         total_weight += weight
     weighted_average = weighted_average/total_weight
 
+    # This is ideal case
     truth = 1.0 if correct else 0.0
+    
+    # Tries to calculate the contribution: score with matcher - score without matcher
+    # The score is an indicator if the score would improve to what extend
+    # This indicator is used to tweak the weights based on whether it is true or false
+    contribution = {}
+    for key, value in edge['scores'].items():
+        contribution[key] = calculate_contribution(edge['scores'], key, weighted_average)
 
-    print(weighted_average)
-    print(truth)
+        if truth == 0:
+            contribution[key] = -contribution[key]
+        contribution[key] = contribution[key]
 
-    print(truth - weighted_average)
+        new_weight = _adjust_weight(expert_weights[key], contribution[key])
 
-    diff = truth - weighted_average
-
-    # print(edge['scores'])
+        expert_weights.update({key: new_weight})
 
     _save_expert_weights(expert_weights)
 
 
+# W_i from paper
+def calculate_contribution(nodes, target, score):
+    # With target
+    with_target = score
+
+    # Without target
+    total_weight = 0
+    weighted_average = 0
+    for key, value in nodes.items():
+        if key == target:
+            continue
+
+        weight = value
+        score = nodes[key]
+
+        weighted_average += weight * score
+        total_weight += weight
+    weighted_average = weighted_average/total_weight
+
+
+    # With - Without
+    return with_target - weighted_average
+
+def _adjust_weight(weight, contribution):
+    return min(max(0.0, ((contribution * LEARNING_RATE) + weight)), 1.0)
 
 def reset_expert_weights():
     raw_expert_weights = get_raw_expert_weights()

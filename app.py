@@ -113,7 +113,7 @@ def label_post():
 
     for relation in edges_to_label:
         relationId = int(relation)
-        match_service.adjust_weights(relationId, correct)
+        match_service.adjust_weights_collab(relationId, correct)
 
     matching_edges = node_service.get_matches()
 
@@ -174,4 +174,5 @@ def label_truth_post():
     clusters = evaluation_service.get_ground_truth()
     return render_template("submit_ground_truth.html", nodes=nodes, clusters=clusters, success=True)
 
+# export FLASK_ENV=development
 app.run(debug=True)
