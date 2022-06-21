@@ -86,6 +86,33 @@ def get_matches():
 
     return result
 
+def get_unlabelled_matches():
+    cursor = database.getConnection()
+    sql = "SELECT edge_id, column_1, column_2 FROM edges WHERE labelled=false"
+    cursor.execute(sql)
+    edges = cursor.fetchall()
+
+    result = []
+
+    for edge in edges:
+        # Retrieving table information
+        edge_id = edge[0]
+        sql = "SELECT edge_id, algorithm, similarity_score FROM matches WHERE edge_id=%s"
+        cursor.execute(sql, (edge_id, ))
+        records = cursor.fetchall()
+        records = list(map(lambda match: {match[1]: match[2]}, records))
+        
+        records = {k: v for d in records for k, v in d.items()}
+
+        result.append({
+                'id': edge[0],
+                'from': edge[1],
+                'to': edge[2],
+                'scores': records
+            })
+
+    return result
+
 def insert_edge(column_from, column_to):
     cursor = database.getConnection()
     sql = 'INSERT INTO edges (edge_id, column_1, column_2) VALUES (DEFAULT, %s, %s) RETURNING edge_id;'
@@ -98,6 +125,13 @@ def insert_match(edge_id, algorithm, similarity_score):
     sql = 'INSERT INTO matches (edge_id, algorithm, similarity_score) VALUES (%s, %s, %s)'
     cursor.execute(sql, (edge_id, algorithm, similarity_score, ))
     return id
+
+def label_edge(edge_id):
+    cursor = database.getConnection()
+    sql = 'UPDATE edges SET labelled=true WHERE edge_id=%s'
+    cursor.execute(sql, (edge_id, ))
+    database.commit()
+    return True
 
 def get_tables():
     cursor = database.getConnection()

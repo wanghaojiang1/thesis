@@ -2,10 +2,14 @@ from flask import Flask, Response, request, redirect, render_template
 from utils import database
 import os
 import numpy
+import operator
+import json
 import pandas as pd
-from services import node_service, match_service, clustering_service, evaluation_service
+from services import node_service, match_service, clustering_service, evaluation_service, matrix
 
 app = Flask('app')
+
+# ACTIAVTE ENVIRONMENT: source ./newvenv/bin/activate
 
 DATA_SPACE = "TPC-H"
 
@@ -19,9 +23,50 @@ def add_header(response):
     response.headers['Cache-Control'] = 'public, max-age=0'
     return response
 
+
+import subprocess
 @app.route("/")
 def hello_world():
     return "<p>Hello, World!</p>"
+
+@app.route("/backup")
+def backup():
+    subprocess.run('pg_dump -h localhost -U root -d thesis -Fc > /mnt/e/Educational/Thesis/Code/thesis/exports/backups/dump.sql', shell=True)
+    return "OK"
+
+@app.route("/restore")
+def restore():
+    database.dropTables()
+    subprocess.run('pg_restore -h localhost -U root -d thesis -vcC --clean < /mnt/e/Educational/Thesis/Code/thesis/exports/backups/dump.sql', shell=True)
+    # subprocess.run('psql -h localhost -U root -d thesis < /mnt/e/Educational/Thesis/Code/thesis/exports/backups/dump.sql', shell=True)
+    return "Restored"
+
+@app.route("/get-matches")
+def get_matches():
+    return render_template("matches.html", nodes=match_service.get_ordered_matches())
+
+@app.route("/metric-graph")
+def metrics_graph():
+    relations = match_service.get_ordered_matches()
+    ground_truth = evaluation_service.get_ground_truth()
+    evaluation_service.create_relation_metric_graph(relations, ground_truth)
+ 
+    return 'OK'
+
+
+@app.route("/metrics-at/<k>")
+def metrics_at(k):
+    relations = match_service.get_ordered_matches()
+    ground_truth = evaluation_service.get_ground_truth()
+    result = evaluation_service.evaluate_relations_at(relations, ground_truth, int(k))
+ 
+    return json.dumps(result)
+
+@app.route("/set-aggregation/<strategy>")
+def set_aggregation_strategy(strategy):
+    matrix.set_aggregation_strategy(strategy)
+    
+    return f"OK, new aggregation strategy: {matrix.COMBINE_STRATEGY}"
 
 @app.route("/test")
 def test():
@@ -102,7 +147,7 @@ def profile():
 
 @app.route('/label-relations')
 def label():
-    matching_edges = node_service.get_matches()
+    matching_edges = node_service.get_unlabelled_matches()
 
     return render_template("label_relations.html", relationships=matching_edges)
 
@@ -143,6 +188,26 @@ def results():
     evaluations = evaluation_service.get_evaluations()
 
     return render_template("results.html", setting=clusters['setting'], clusters=clusters['clusters'], threshold=clustering_service.CLUSTERING_THRESHOLD, evaluations=evaluations)
+
+@app.route('/best-cluster/<number>')
+def best_clusters(number):
+    clusters = evaluation_service.best_clusters(int(number))
+    return json.dumps(clusters)
+
+
+@app.route('/cluster-k/<number>')
+def cluster_k(number):
+
+    clustering_service.clusterk(int(number))
+    expert_weights = match_service.get_raw_expert_weights()
+    # traversal.evaluation_service.reset_evaluations()
+    
+    clusters = clustering_service.get_clusters()['clusters']
+    ground_truth = evaluation_service.get_ground_truth()
+    evaluation = evaluation_service.evaluate_clusters(clusters, ground_truth)
+    evaluation_service.save_evaluation(evaluation)
+
+    return redirect("/results")
 
 @app.route('/update-threshold', methods = ['POST'])
 def update_threshold():

@@ -4,6 +4,11 @@ from . import matching_techniques, match_service, node_service
 MATRIX_LOCATION = './exports/matrix.csv'
 COMBINE_STRATEGY = 'MAX'
 
+def set_aggregation_strategy(strategy):
+    global COMBINE_STRATEGY
+    COMBINE_STRATEGY = strategy
+
+
 def initialize_matrix():
     matching_edges = node_service.get_matches()
     matching_experts = list(map(lambda variant: variant['type'], matching_techniques.VARIANTS))

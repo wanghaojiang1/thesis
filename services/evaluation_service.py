@@ -12,6 +12,38 @@ matplotlib.use('Agg')
 
 from matplotlib import pyplot as plt
 
+def create_relation_metric_graph(relations, ground_truth):
+    max_k = 200
+    x = []
+    y_precision = []
+    y_recall = []
+    y_f_measure = []
+    for k in range(0, max_k):
+        results = evaluate_relations_at(relations, ground_truth, k)
+        x.append(k)
+        y_precision.append(results['precision'])
+        y_recall.append(results['recall'])
+        y_f_measure.append(results['f-measure'])
+
+    
+    plt.plot(x, y_precision, label='precision', alpha=0.4)
+    plt.plot(x, y_recall, label='recall', alpha=0.4)
+    plt.plot(x, y_f_measure, label='f-measure', alpha=0.4)
+    plt.legend(loc="upper left")
+    plt.ylabel('Score')
+    plt.xlabel('Number of relations')
+    plt.show()
+    plt.savefig('exports/metric_graph.png')
+
+
+def evaluate_relations_at(relations, ground_truth, k):
+    relations = relations[:k]
+    p = relation_precision(relations, ground_truth)
+    r = relation_recall(relations, ground_truth)
+    f = f_measure(p, r)
+
+    return {'precision': p, 'recall': r, 'f-measure': f, 'k': k}
+
 def evaluate_clusters(clusters, ground_truth):
     # Depends on ground_truth actually. If ground_truth does contain the single clusters, then the clusters should too
     clusters = list(filter(lambda cluster: len(cluster) > 1, clusters))
@@ -111,7 +143,28 @@ def true_positives():
         "averages": averages,
         "length": length,
         "max_length": len(true_matches)}
-        
+
+# Clusters and ground_truth should be in the form of [[cluster_1], [cluster_2], [cluster_3]]
+def relation_precision(relations, ground_truth):                         # I
+    relations = parse_relations(relations)
+    if len(relations) == 0:
+        return 0
+
+    true_relations = parse_clusters(ground_truth)                   # R
+    true_positives = relation_intersect(relations, true_relations)  # P
+    
+    return len(true_positives)/len(relations)
+
+def relation_recall(relations, ground_truth):
+    relations = parse_relations(relations)                          # I
+    if len(relations) == 0:
+        return 0
+
+    true_relations = parse_clusters(ground_truth)                   # R
+    true_positives = relation_intersect(relations, true_relations)  # P
+    
+    return len(true_positives)/len(true_relations)
+
 # Clusters and ground_truth should be in the form of [[cluster_1], [cluster_2], [cluster_3]]
 def precision(clusters, ground_truth):
     relations = parse_clusters(clusters)                            # I
@@ -138,6 +191,15 @@ def f_measure(p, r):
         return 0
     
     return (2 * p * r)/(p + r)
+
+def parse_relations(relations):
+    tuples = []
+
+    for relation in relations:
+        relations = [relation['from'], relation['to']]
+        tuples.append(relations)
+
+    return tuples
 
 def parse_clusters(clusters):
     tuples = []

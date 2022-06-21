@@ -1,9 +1,10 @@
-from . import matching_techniques, node_service
+from . import matching_techniques, node_service, matrix
 from tqdm import tqdm
 import os
 import numpy as np
 import pandas as pd
 import json
+import operator
 
 LEARNING_RATE = 0.1   # Should be <= 0.5
 WEIGHT_INIT_VALUE = 1.0
@@ -45,7 +46,6 @@ def adjust_weights(edge_id, correct=False):
         return
 
     for key, value in edge['scores'].items():
-        print(key)
         if (key not in expert_weights.keys()):
             continue
         truth = 1 if correct else 0
@@ -58,6 +58,7 @@ def adjust_weights(edge_id, correct=False):
     _save_expert_weights(expert_weights)
     
     # TODO: label the edge such that we don't label everything more than once
+    node_service.label_edge(edge_id)
 
 def adjust_weights_collab(edge_id, correct=False):
     edge = node_service.get_match(edge_id)
@@ -70,8 +71,8 @@ def adjust_weights_collab(edge_id, correct=False):
     weighted_average = 0
     total_weight = 0
     for key, value in edge['scores'].items():
-        weight = value
-        score = edge['scores'][key]
+        weight = expert_weights[key]
+        score = value
 
         weighted_average += weight * score
         total_weight += weight
@@ -97,9 +98,13 @@ def adjust_weights_collab(edge_id, correct=False):
 
     _save_expert_weights(expert_weights)
 
+    node_service.label_edge(edge_id)
+
 
 # W_i from paper
 def calculate_contribution(nodes, target, score):
+    expert_weights = get_raw_expert_weights()
+
     # With target
     with_target = score
 
@@ -110,16 +115,24 @@ def calculate_contribution(nodes, target, score):
         if key == target:
             continue
 
-        weight = value
-        score = nodes[key]
+        score = value
+        weight = expert_weights[key]
 
         weighted_average += weight * score
         total_weight += weight
-    weighted_average = weighted_average/total_weight
 
+    weighted_average = weighted_average/total_weight
 
     # With - Without
     return with_target - weighted_average
+
+def get_ordered_matches():
+    matches = node_service.get_matches()
+    scores = matrix.get_scores()
+    matches = list(map(lambda node: {'id': node['id'], 'from': node['from'], 'to': node['to'], 'score': scores[str(node['id'])]}, matches))
+
+    matches.sort(key=operator.itemgetter('score'), reverse=True)
+    return matches
 
 def _adjust_weight(weight, contribution):
     return min(max(0.0, ((contribution * LEARNING_RATE) + weight)), 1.0)
