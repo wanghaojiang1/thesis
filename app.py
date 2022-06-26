@@ -105,7 +105,7 @@ def initialise_tables():
     done = []
     for filename in os.listdir('./tables/{}'.format(DATA_SPACE)):
         f = os.path.join('./tables/{}'.format(DATA_SPACE), filename)
-        df = pd.read_csv(f)
+        df = pd.read_csv(f, nrows=10)
 
         for column in df.columns:
             column_id = filename + "/" + column
@@ -123,12 +123,13 @@ def profile():
     tables = node_service.get_tables()
     print("TABLES: ", tables)
     for x in range(0, len(tables)):
+        table1_path = os.path.join('./tables/{}'.format(DATA_SPACE), tables[x])
+        print('reading x')
+        df1 = pd.read_csv(table1_path, engine='python', error_bad_lines=False)
         for y in range(x + 1, len(tables)):
-            table1_path = os.path.join('./tables/{}'.format(DATA_SPACE), tables[x])
             table2_path = os.path.join('./tables/{}'.format(DATA_SPACE), tables[y])
-
-            df1 = pd.read_csv(table1_path)
-            df2 = pd.read_csv(table2_path)
+            print('reading y')
+            df2 = pd.read_csv(table2_path, engine='python', error_bad_lines=False)
             print(" ---- MATCHING:" + tables[x] + " " + tables[y])
             matches = match_service.match_with_all_techniques(df1, df2)
             distinct_matches = set([y for x in list(matches.values()) for y in x])
