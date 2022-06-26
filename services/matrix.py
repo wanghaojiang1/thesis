@@ -2,7 +2,7 @@ import pandas as pd
 from . import matching_techniques, match_service, node_service
 
 MATRIX_LOCATION = './exports/matrix.csv'
-COMBINE_STRATEGY = 'MAX'
+COMBINE_STRATEGY = 'WEIGHTED_AVERAGE'
 
 def set_aggregation_strategy(strategy):
     global COMBINE_STRATEGY
@@ -62,7 +62,7 @@ def weighted_score(scores):
     score = 0
 
     for index in range(0, len(scores)):
-            score += expert_weights[index] * scores.iloc[index]
+        score += expert_weights[index] * scores.iloc[index]
 
     return score/sum(expert_weights)
 

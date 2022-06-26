@@ -60,6 +60,7 @@ def adjust_weights(edge_id, correct=False):
     # TODO: label the edge such that we don't label everything more than once
     node_service.label_edge(edge_id)
 
+# Second reinforcement learning approach: collaborative contribution
 def adjust_weights_collab(edge_id, correct=False):
     edge = node_service.get_match(edge_id)
     expert_weights = get_raw_expert_weights()
@@ -126,6 +127,35 @@ def calculate_contribution(nodes, target, score):
     # With - Without
     return with_target - weighted_average
 
+def add_truth(edge_id, correct=False):
+    edge = node_service.get_match(edge_id)
+
+    result = {
+        'edge_id': edge_id,
+        'correct': correct,
+        'scores': edge['scores']
+    }
+
+    _save_labelled_edge(result)
+    node_service.label_edge(edge_id)
+
+def _save_labelled_edge(edge):
+    result = [edge]
+    old_results = _get_labelled_edges()
+
+    with open("./exports/truth.json", "w") as outfile:
+        json.dump(old_results + result, outfile)
+
+def _get_labelled_edges():
+    if (not os.path.exists('./exports/truth.json')):
+        return []
+
+    with open('./exports/truth.json') as json_file:
+        result = json.load(json_file)
+        return result
+
+
+
 def get_ordered_matches():
     matches = node_service.get_matches()
     scores = matrix.get_scores()
@@ -184,4 +214,4 @@ def _expert_weights_is_aligned():
 
 def _save_expert_weights(expert_weights):
     with open("./exports/expert_weights.json", "w") as outfile:
-            json.dump(expert_weights, outfile)
+        json.dump(expert_weights, outfile)

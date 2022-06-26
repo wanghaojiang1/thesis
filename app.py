@@ -5,7 +5,7 @@ import numpy
 import operator
 import json
 import pandas as pd
-from services import node_service, match_service, clustering_service, evaluation_service, matrix
+from services import node_service, match_service, clustering_service, evaluation_service, matrix, linear_programming_module
 
 app = Flask('app')
 
@@ -27,6 +27,7 @@ def add_header(response):
 import subprocess
 @app.route("/")
 def hello_world():
+    linear_programming_module.solve()
     return "<p>Hello, World!</p>"
 
 @app.route("/backup")
@@ -38,7 +39,6 @@ def backup():
 def restore():
     database.dropTables()
     subprocess.run('pg_restore -h localhost -U root -d thesis -vcC --clean < /mnt/e/Educational/Thesis/Code/thesis/exports/backups/dump.sql', shell=True)
-    # subprocess.run('psql -h localhost -U root -d thesis < /mnt/e/Educational/Thesis/Code/thesis/exports/backups/dump.sql', shell=True)
     return "Restored"
 
 @app.route("/get-matches")
@@ -121,6 +121,7 @@ def initialise_tables():
 @app.route("/profile")
 def profile():
     tables = node_service.get_tables()
+    print("TABLES: ", tables)
     for x in range(0, len(tables)):
         for y in range(x + 1, len(tables)):
             table1_path = os.path.join('./tables/{}'.format(DATA_SPACE), tables[x])
@@ -158,7 +159,8 @@ def label_post():
 
     for relation in edges_to_label:
         relationId = int(relation)
-        match_service.adjust_weights_collab(relationId, correct)
+        # match_service.adjust_weights_collab(relationId, correct)
+        match_service.add_truth(relationId, correct)
 
     matching_edges = node_service.get_matches()
 

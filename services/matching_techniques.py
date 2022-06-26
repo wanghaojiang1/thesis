@@ -11,11 +11,21 @@ VALENTINE = valentine.match_on_function
 # All included matchers
 VARIANTS = [{
 		'matcher': VALENTINE,
-		'type': 'coma',
+		'type': 'coma_instance',
 		'function': Coma,
 		'arguments': {
 			# 'strategy': "COMA_OPT"
 			'strategy': "COMA_OPT_INST"
+		},
+		'threshold': 0
+	},
+	{
+		'matcher': VALENTINE,
+		'type': 'coma_schema',
+		'function': Coma,
+		'arguments': {
+			'strategy': "COMA_OPT"
+			# 'strategy': "COMA_OPT_INST"
 		},
 		'threshold': 0
 	},

@@ -73,11 +73,13 @@ def best_clusters(pivot):
     nodes = node_service.get_nodes()
     max = len(nodes)
     best = evaluate_cluster(pivot)
+    save_evaluation(best)
     index = -1
 
     for i in range(pivot, max):
         value = evaluate_cluster(i)
-        if best < value:
+        save_evaluation(value)
+        if best['f-measure'] < value['f-measure']:
             best = value
             index = i
 
@@ -89,7 +91,7 @@ def evaluate_cluster(k):
     clusters = clustering_service.get_clusters()['clusters']
     ground_truth = get_ground_truth()
     evaluation = evaluate_clusters(clusters, ground_truth)
-    return evaluation['f-measure']
+    return evaluation
 
 
 # Find percentage of false positives
