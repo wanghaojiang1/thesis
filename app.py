@@ -28,7 +28,7 @@ def add_header(response):
 import subprocess
 @app.route("/")
 def hello_world():
-    return "<p>Hello, World!</p>"
+    return render_template("index.html")
 
 @app.route("/test")
 def test():
