@@ -1,4 +1,4 @@
-from . import matrix, match_service, clustering_service, node_service
+from . import matrix, match_service, clustering_service, node_service, matching_techniques
 from tqdm import tqdm
 from scipy.cluster.hierarchy import ward, fcluster, dendrogram
 from scipy.spatial.distance import pdist
@@ -8,12 +8,209 @@ import numpy as np
 import pandas as pd
 import json
 import matplotlib
+import operator
 matplotlib.use('Agg')
 
 from matplotlib import pyplot as plt
 
+def create_matchers_best_metric_bar_chart(precision, recall, f_measure):
+    ground_truth = get_ground_truth()
+    matches = node_service.get_matches()
+
+    precision_map = {}
+    recall_map = {}
+    f_measure_map = {}
+
+    x = ['Precision', 'Recall', 'F-measure']
+
+    matchers = list(map(lambda matcher: matcher['type'], matching_techniques.VARIANTS))
+    for matcher in tqdm(matchers):
+        local_matches = list(map(lambda node: {'id': node['id'], 'from': node['from'], 'to': node['to'], 'score': node['scores'][matcher]}, matches))
+        local_matches.sort(key=operator.itemgetter('score'), reverse=True)
+
+        local_precision = 0
+        local_recall = 0
+        local_f_measure = 0
+
+        # for k in range(0, len(local_matches)):
+        for k in range(0, 500):
+            results = evaluate_relations_at(local_matches, ground_truth, k)
+            if results['f-measure'] > local_f_measure:
+
+                local_precision = results['precision']
+                local_recall = results['recall']
+                local_f_measure = results['f-measure']
+        
+        precision_map[matcher] = local_precision
+        recall_map[matcher] = local_recall
+        f_measure_map[matcher] = local_f_measure
+
+    our_name = 'max'
+    local_precision = 0
+    local_recall = 0
+    local_f_measure = 0
+    local_matches = list(map(lambda node: {'id': node['id'], 'from': node['from'], 'to': node['to'], 'score': node['scores'][max(node['scores'].keys(), key=(lambda new_k: node['scores'][new_k]))]}, matches))
+    local_matches.sort(key=operator.itemgetter('score'), reverse=True)
+
+    for k in range(0, 500):
+        results = evaluate_relations_at(local_matches, ground_truth, k)
+        if results['f-measure'] > local_f_measure:
+            local_precision = results['precision']
+            local_recall = results['recall']
+            local_f_measure = results['f-measure']
+
+    precision_map[our_name] = local_precision
+    recall_map[our_name] = local_recall
+    f_measure_map[our_name] = local_f_measure
+
+    our_name = 'weighted_average'
+    local_precision = 0
+    local_recall = 0
+    local_f_measure = 0
+    our_matches = match_service.get_ordered_matches()
+    for k in range(0, 500):
+        results = evaluate_relations_at(our_matches, ground_truth, k)
+        if results['f-measure'] > local_f_measure:
+            local_precision = results['precision']
+            local_recall = results['recall']
+            local_f_measure = results['f-measure']
+        
+    precision_map[our_name] = local_precision
+    recall_map[our_name] = local_recall
+    f_measure_map[our_name] = local_f_measure
+
+
+    our_name = 'weighted_average (with clusters)'
+    precision_map[our_name] = precision
+    recall_map[our_name] = recall
+    f_measure_map[our_name] = f_measure
+
+    width = 1.0 / (len(matchers) + 4)
+    ind = np.arange(len(x))
+    index = 0
+    for key, value in precision_map.items():
+        total_value = [precision_map[key], recall_map[key], f_measure_map[key]]
+        plt.bar(ind + (index * width), total_value, width = width, label=key)
+
+        index = index + 1
+    # plt.legend(loc="upper right")
+    plt.legend(bbox_to_anchor = (1.05, 0.5))
+    plt.axes().set_ylim([0, 1])
+    plt.ylabel('Score')
+    plt.xlabel('Metric type')
+    plt.xticks(ind + (width * (len(matchers) + 3)) / 2, x)
+    plt.savefig('exports/matcher_metric_best_f_measure_bar.png', bbox_inches='tight')
+    plt.clf()
+    return
+
+def create_matchers_metric_graphs():
+    print("YASSS")
+    ground_truth = get_ground_truth()
+    matches = node_service.get_matches()
+    precision_map = {}
+    recall_map = {}
+    f_measure_map = {}
+
+    # x = range(1, len(matches) + 1)
+    # with open("./exports/graph/range.txt", "w") as outfile:
+    #     outfile.write(str(len(matches) + 1))
+    # matchers = list(map(lambda matcher: matcher['type'], matching_techniques.VARIANTS))
+    # for matcher in tqdm(matchers):
+    #     local_matches = list(map(lambda node: {'id': node['id'], 'from': node['from'], 'to': node['to'], 'score': node['scores'][matcher]}, matches))
+    #     local_matches.sort(key=operator.itemgetter('score'), reverse=True)
+
+    #     local_precision = []
+    #     local_recall = []
+    #     local_f_measure = []
+
+    #     for k in range(0, len(local_matches)):
+    #         results = evaluate_relations_at(local_matches, ground_truth, k)
+    #         local_precision.append(results['precision'])
+    #         local_recall.append(results['recall'])
+    #         local_f_measure.append(results['f-measure'])
+        
+    #     with open("./exports/graph/{}-precision.json".format(matcher), "w") as outfile:
+    #         json.dump(local_precision, outfile)
+    #     with open("./exports/graph/{}-recall.json".format(matcher), "w") as outfile:
+    #         json.dump(local_recall, outfile)
+    #     with open("./exports/graph/{}-f-measure.json".format(matcher), "w") as outfile:
+    #         json.dump(local_f_measure, outfile)
+
+    #     precision_map[matcher] = local_precision
+    #     recall_map[matcher] = local_recall
+    #     f_measure_map[matcher] = local_f_measure
+    
+    our_matches = match_service.get_ordered_matches()
+    our_precision = []
+    our_recall = []
+    our_f_measure = []
+    for k in range(0, len(our_matches)):
+        results = evaluate_relations_at(our_matches, ground_truth, k)
+        our_precision.append(results['precision'])
+        our_recall.append(results['recall'])
+        our_f_measure.append(results['f-measure'])
+
+
+    with open("./exports/graph/max-precision.json", "w") as outfile:
+            json.dump(our_precision, outfile)
+    with open("./exports/graph/max-recall.json", "w") as outfile:
+        json.dump(our_recall, outfile)
+    with open("./exports/graph/max-f-measure.json", "w") as outfile:
+        json.dump(our_f_measure, outfile)
+
+    # our_name = 'weighted_average'
+    # precision_map[our_name] = our_precision
+    # recall_map[our_name] = our_recall
+    # f_measure_map[our_name] = our_f_measure
+
+    # # Precision graph
+    # for key, value in precision_map.items():
+    #     if key == our_name:
+    #         plt.plot(x, value, label=key, alpha=0.9)
+    #     else:
+    #         plt.plot(x, value, label=key, alpha=0.4)
+    # plt.legend(loc="upper right")
+    # plt.axes().set_ylim([0, 1])
+    # plt.ylabel('Score')
+    # plt.xlabel('Number of matches')
+    # plt.title("Precision")
+    # plt.savefig('exports/matcher_metric_graph_precision.png')
+
+    # Reset 
+    plt.clf()
+
+    # Recall
+    # for key, value in recall_map.items():
+    #     if key == our_name:
+    #         plt.plot(x, value, label=key, alpha=0.9)
+    #     else:
+    #         plt.plot(x, value, label=key, alpha=0.4)
+    # plt.legend(loc="lower right")
+    # plt.axes().set_ylim([0, 1])
+    # plt.ylabel('Score')
+    # plt.xlabel('Number of matches')
+    # plt.title("Recall")
+    # plt.savefig('exports/matcher_metric_graph_recall.png')
+
+    plt.clf()
+
+    # F-measure
+    # for key, value in f_measure_map.items():
+    #     if key == our_name:
+    #         plt.plot(x, value, label=key, alpha=0.9)
+    #     else:
+    #         plt.plot(x, value, label=key, alpha=0.4)
+    # plt.legend(loc="upper right")
+    # plt.axes().set_ylim([0, 1])
+    # plt.ylabel('Score')
+    # plt.xlabel('Number of matches')
+    # plt.title("F-measure")
+    # plt.savefig('exports/matcher_metric_graph_f_measure.png')
+    return
+
+
 def create_relation_metric_graph(relations, ground_truth):
-    max_k = 200
+    max_k = len(node_service.get_matches())
     x = []
     y_precision = []
     y_recall = []
@@ -41,10 +238,22 @@ def evaluate_relations_at(relations, ground_truth, k):
     p = relation_precision(relations, ground_truth)
     r = relation_recall(relations, ground_truth)
     f = f_measure(p, r)
-
     return {'precision': p, 'recall': r, 'f-measure': f, 'k': k}
 
-def evaluate_clusters(clusters, ground_truth):
+def perform_evaluation():
+    nodes = node_service.get_nodes()
+    max = len(nodes)
+
+    for i in reversed(range(1, max)):
+        clustering_service.clusterk(i)
+        clusters = clustering_service.get_clusters()['clusters']
+        ground_truth = get_ground_truth()
+        evaluation_relations = evaluate_relations(clusters, ground_truth)
+        evaluation_clusters = evaluate_clusters(clusters, ground_truth)
+        save_evaluation(evaluation_relations)
+        save_evaluation(evaluation_clusters)
+
+def evaluate_relations(clusters, ground_truth):
     # Depends on ground_truth actually. If ground_truth does contain the single clusters, then the clusters should too
     clusters = list(filter(lambda cluster: len(cluster) > 1, clusters))
 
@@ -54,7 +263,19 @@ def evaluate_clusters(clusters, ground_truth):
 
     threshold = clustering_service.CLUSTERING_THRESHOLD
 
-    return {'precision': p, 'recall': r, 'f-measure': f, 'threshold': threshold}
+    return {'precision': p, 'recall': r, 'f-measure': f, 'threshold': threshold, 'type': 'Relations'}
+
+def evaluate_clusters(clusters, ground_truth):
+    # Depends on ground_truth actually. If ground_truth does contain the single clusters, then the clusters should too
+    clusters = list(filter(lambda cluster: len(cluster) > 1, clusters))
+
+    p = precision_cluster(clusters, ground_truth)
+    r = recall_cluster(clusters, ground_truth)
+    f = f_measure(p, r)
+
+    threshold = clustering_service.CLUSTERING_THRESHOLD
+
+    return {'precision': p, 'recall': r, 'f-measure': f, 'threshold': threshold, 'type': 'Clusters'}
 
 # def evaluate_clusters(clusters, ground_truth):
 #     # Depends on ground_truth actually. If ground_truth does contain the single clusters, then the clusters should too

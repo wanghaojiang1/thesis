@@ -42,6 +42,11 @@
       height: 300px;
     }
   </style>
+  <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+  <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.12.1/js/dataTables.bootstrap5.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.css">
+  
 {% endblock %}
 
 {% block content %}
@@ -134,13 +139,14 @@
             <div class="row">
               <h4>Evaluation</h4>
               <br>
-              <table class="table">
+              <table class="table" id="evaluations">
                 <thead>
                   <tr>
                     <th>Threshold</th>
                     <th>Precision</th>
                     <th>Recall</th>
                     <th>F-measure</th>
+                    <th>Metric type</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -150,6 +156,7 @@
                       <td>{{ evaluation['precision'] }}</td>
                       <td>{{ evaluation['recall'] }}</td>
                       <td>{{ evaluation['f-measure'] }}</td>
+                      <td>{{ evaluation['type'] }}</td>
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -219,5 +226,12 @@
       }
     }
     imageZoom("myimage", "myresult");
+
+    $(document).ready(function () {
+        $('#evaluations').DataTable({
+          "aLengthMenu": [[25, 50, 75, 100, -1], [25, 50, 75, 100, "All"]],
+          "iDisplayLength": 100
+        });
+    });
   </script>
 {% endblock %}

@@ -1,4 +1,5 @@
 from utils import database
+from . import configuration
 
 def get_nodes():
     cursor = database.getConnection()
@@ -39,7 +40,8 @@ def get_match(edge_id):
     sql = "SELECT edge_id, algorithm, similarity_score FROM matches WHERE edge_id=%s"
     cursor.execute(sql, (edge_id, ))
     records = cursor.fetchall()
-    records = list(map(lambda match: {match[1]: match[2]}, records))
+    # records = list(map(lambda match: {match[1]: match[2]}, records))
+    records = list(map(lambda match: {match[1]: match[2]} if match[2] >= configuration.THRESHOLD else {match[1]: 0} , records))
     
     records = {k: v for d in records for k, v in d.items()}
     return {
@@ -56,7 +58,7 @@ def get_match_by_columns(column_from, column_to):
     sql = "SELECT * FROM nodes WHERE (column_1=%s AND column_2=%s) OR (column_1=%s AND column_2=%s)"
     cursor.execute(sql, (column_from, column_to, column_to, column_from, ))
     record = cursor.fetchone()
-
+    records = list(map(lambda match: {match[1]: match[2]} if match[2] >= configuration.THRESHOLD else {match[1]: 0} , records))
     return record
 
 def get_matches():
@@ -73,8 +75,9 @@ def get_matches():
         sql = "SELECT edge_id, algorithm, similarity_score FROM matches WHERE edge_id=%s"
         cursor.execute(sql, (edge_id, ))
         records = cursor.fetchall()
-        records = list(map(lambda match: {match[1]: match[2]}, records))
-        
+        # records = list(map(lambda match: {match[1]: match[2]}, records))
+        records = list(map(lambda match: {match[1]: match[2]} if match[2] >= configuration.THRESHOLD else {match[1]: 0} , records))
+
         records = {k: v for d in records for k, v in d.items()}
 
         result.append({
@@ -100,7 +103,8 @@ def get_unlabelled_matches():
         sql = "SELECT edge_id, algorithm, similarity_score FROM matches WHERE edge_id=%s"
         cursor.execute(sql, (edge_id, ))
         records = cursor.fetchall()
-        records = list(map(lambda match: {match[1]: match[2]}, records))
+        # records = list(map(lambda match: {match[1]: match[2]}, records))
+        records = list(map(lambda match: {match[1]: match[2]} if match[2] >= configuration.THRESHOLD else {match[1]: 0} , records))
         
         records = {k: v for d in records for k, v in d.items()}
 

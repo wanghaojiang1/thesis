@@ -1,44 +1,13 @@
 from . import matching_techniques, node_service, matrix
-from tqdm import tqdm
 import os
-import numpy as np
-import pandas as pd
 import json
-import operator
 
-LEARNING_RATE = 0.1   # Should be <= 0.5
-WEIGHT_INIT_VALUE = 1.0
-
-def match_with_all_techniques(df1, df2):
-    result = {}
-
-    if (not _expert_weights_is_aligned()):
-        _initialize_expert_weights()
-
-    # Match with all defined matching variants
-    for matching_tuple in matching_techniques.VARIANTS:
-        matching_result = matching_tuple['matcher'](df1, df2, matching_tuple['function'], matching_tuple['arguments'])
-        partial_result = _filter_on_threshold(matching_result, matching_tuple['threshold'])
-
-        result[matching_tuple['type']] = partial_result
-
-    return result
-
-def get_expert_weights():
-    raw_weights = get_raw_expert_weights()
-    return list(raw_weights.values())
-
-def get_raw_expert_weights():
-    if (not _expert_weights_exists()):
-        return {}
-
-    with open('./exports/expert_weights.json') as json_file:
-        result = json.load(json_file)
-        return result
+LEARNING_RATE = 0.1
 
 # Optimism: Start with thinking all experts are the best
 # Punish all wrong decisions made by them
-def adjust_weights(edge_id, correct=False):
+def multiplicative_weight_update(edge_id, correct=False):
+    print('DOING IT')
     edge = node_service.get_match(edge_id)
     expert_weights = get_raw_expert_weights()
 
@@ -55,13 +24,20 @@ def adjust_weights(edge_id, correct=False):
         new_weight = _decrease_weight(expert_weights[key], value, truth) if (bool(value > 0) ^ correct) else expert_weights[key]
         expert_weights.update({key: new_weight})
     
+    print(expert_weights)
     _save_expert_weights(expert_weights)
+    print('saved')
     
     # TODO: label the edge such that we don't label everything more than once
     node_service.label_edge(edge_id)
 
+def _decrease_weight(weight, score, truth):
+    
+    return max((1.0 - (LEARNING_RATE * abs(truth - score))) * weight, 0.0)
+
+
 # Second reinforcement learning approach: collaborative contribution
-def adjust_weights_collab(edge_id, correct=False):
+def reinforcement_learning(edge_id, correct=False):
     edge = node_service.get_match(edge_id)
     expert_weights = get_raw_expert_weights()
 
@@ -97,7 +73,9 @@ def adjust_weights_collab(edge_id, correct=False):
 
         expert_weights.update({key: new_weight})
 
+    print(expert_weights)
     _save_expert_weights(expert_weights)
+    print('saved')
 
     node_service.label_edge(edge_id)
 
@@ -127,14 +105,15 @@ def calculate_contribution(nodes, target, score):
     # With - Without
     return with_target - weighted_average
 
-def add_truth(edge_id, correct=False):
+def _adjust_weight(weight, contribution):
+    return max(0.0, ((contribution * LEARNING_RATE) + weight))
 
+
+def linear_programming(edge_id, correct=False):
     scores = matrix.get_matrix()
     expert_weights = matching_techniques.VARIANTS
 
     scores = scores[str(edge_id)].head(len(expert_weights)).to_dict()
-
-    # edge = node_service.get_match(edge_id)
 
     result = {
         'edge_id': edge_id,
@@ -160,70 +139,19 @@ def _get_labelled_edges():
         result = json.load(json_file)
         return result
 
-def _get_collective_labelled_edges():
-    if (not os.path.exists('./exports/collective_truth.json')):
-        return []
 
-    with open('./exports/collective_truth.json') as json_file:
-        result = json.load(json_file)
-        return result
-
-def get_ordered_matches():
-    matches = node_service.get_matches()
-    scores = matrix.get_scores()
-    matches = list(map(lambda node: {'id': node['id'], 'from': node['from'], 'to': node['to'], 'score': scores[str(node['id'])]}, matches))
-
-    matches.sort(key=operator.itemgetter('score'), reverse=True)
-    return matches
-
-def _adjust_weight(weight, contribution):
-    return min(max(0.0, ((contribution * LEARNING_RATE) + weight)), 1.0)
-
-def reset_expert_weights():
-    raw_expert_weights = get_raw_expert_weights()
-    new_expert_weights = {k: 1.0 for k, v in raw_expert_weights.items()}
-
-    _save_expert_weights(new_expert_weights)
-
-# TODO: come up with better way of adjusting the weights
-def _decrease_weight(weight, score, truth):
-    return max((1.0 - (LEARNING_RATE * (truth - score))) * weight, 0.0)
-
-# Filter results based on thresholds
-def _filter_on_threshold(result_list, threshold = 0):
-	result = {}
-	for key in result_list.keys():
-		if result_list[key] >= threshold:
-			result[key] = result_list[key]
-
-	return result
-
-# Use when new experts are added
-def _initialize_expert_weights():
-    matching_tuples = list(map(lambda variant: {variant['type']: WEIGHT_INIT_VALUE}, matching_techniques.VARIANTS))
-    expert_weights = {k: v for d in matching_tuples for k, v in d.items()}
-
-    # Initialise all weights
-    if (not _expert_weights_exists):
-        _save_expert_weights(expert_weights)
-        return
-
-    # Initialise new expert weights only
-    #   Prevents losing weight values when adding new variants
-    raw_expert_weights = get_raw_expert_weights()
-    expert_weights.update(raw_expert_weights)
-
-    _save_expert_weights(expert_weights)
-
-def _expert_weights_exists():
-    return os.path.exists('./exports/expert_weights.json')
-
-def _expert_weights_is_aligned():
-    variant_types = list(map(lambda variant: variant['type'], matching_techniques.VARIANTS))
-    expert_weights = list(get_raw_expert_weights().keys())
-
-    return expert_weights == variant_types
 
 def _save_expert_weights(expert_weights):
     with open("./exports/expert_weights.json", "w") as outfile:
         json.dump(expert_weights, outfile)
+
+def get_raw_expert_weights():
+    if (not _expert_weights_exists()):
+        return {}
+
+    with open('./exports/expert_weights.json') as json_file:
+        result = json.load(json_file)
+        return result
+
+def _expert_weights_exists():
+    return os.path.exists('./exports/expert_weights.json')

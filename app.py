@@ -3,9 +3,10 @@ from utils import database
 import os
 import numpy
 import operator
+import sys
 import json
 import pandas as pd
-from services import node_service, match_service, clustering_service, evaluation_service, matrix, linear_programming_module
+from services import node_service, match_service, clustering_service, evaluation_service, matrix, linear_programming_module, circos_module, configuration
 
 app = Flask('app')
 
@@ -27,8 +28,35 @@ def add_header(response):
 import subprocess
 @app.route("/")
 def hello_world():
-    linear_programming_module.solve()
     return "<p>Hello, World!</p>"
+
+@app.route("/test")
+def test():
+    # support_vector_machine_module.evaluate()
+    # circos_module.export_graph()
+    # print(node_service.get_matches())
+    # node_service.get_matches()
+    configuration.update_weight(12145, True)
+    return "<p>Hello, World!</p>"
+
+
+@app.route("/get-matcher-performance")
+def get_matcher_performance():
+    # relations = match_service.get_ordered_matches()
+    evaluation_service.create_matchers_metric_graphs()
+ 
+    return 'OK'
+
+@app.route("/get-best-performance-per-matcher")
+def get_best_performance_per_matcher():
+    evaluation_service.create_matchers_best_metric_bar_chart(0.48, 0.23, 0.32)
+    return 'OK'
+
+@app.route("/get-weights/<t>")
+def get_weights(t):
+    threshold = int(t)/100.0
+    linear_programming_module.solve(threshold)
+    return "DONE LINEAR PROGRAMMING WITH: threshold=" + str(threshold)
 
 @app.route("/backup")
 def backup():
@@ -53,7 +81,6 @@ def metrics_graph():
  
     return 'OK'
 
-
 @app.route("/metrics-at/<k>")
 def metrics_at(k):
     relations = match_service.get_ordered_matches()
@@ -68,10 +95,11 @@ def set_aggregation_strategy(strategy):
     
     return f"OK, new aggregation strategy: {matrix.COMBINE_STRATEGY}"
 
-@app.route("/test")
-def test():
-    match_service.adjust_weights_collab(1830, True)
-    return "OK"
+@app.route("/set-normalization/<strategy>")
+def set_normalization(strategy):
+    matrix.set_normalization(strategy == 'True')
+    
+    return f"OK, new normalization strategy: {matrix.NORMALIZE}"
 
 @app.route("/purge")
 def purge():
@@ -125,11 +153,11 @@ def profile():
     for x in range(0, len(tables)):
         table1_path = os.path.join('./tables/{}'.format(DATA_SPACE), tables[x])
         print('reading x')
-        df1 = pd.read_csv(table1_path, engine='python', error_bad_lines=False)
+        df1 = pd.read_csv(table1_path, engine='python', on_bad_lines='skip')
         for y in range(x + 1, len(tables)):
             table2_path = os.path.join('./tables/{}'.format(DATA_SPACE), tables[y])
             print('reading y')
-            df2 = pd.read_csv(table2_path, engine='python', error_bad_lines=False)
+            df2 = pd.read_csv(table2_path, engine='python', on_bad_lines='skip')
             print(" ---- MATCHING:" + tables[x] + " " + tables[y])
             matches = match_service.match_with_all_techniques(df1, df2)
             distinct_matches = set([y for x in list(matches.values()) for y in x])
@@ -161,7 +189,8 @@ def label_post():
     for relation in edges_to_label:
         relationId = int(relation)
         # match_service.adjust_weights_collab(relationId, correct)
-        match_service.add_truth(relationId, correct)
+        # match_service.add_truth(relationId, correct)
+        configuration.update_weight(relationId, correct)
 
     matching_edges = node_service.get_matches()
 
@@ -196,6 +225,12 @@ def results():
 def best_clusters(number):
     clusters = evaluation_service.best_clusters(int(number))
     return json.dumps(clusters)
+
+@app.route('/perform-evaluation')
+def perform_evaluation():
+    evaluation_service.perform_evaluation()
+
+    return "OK DONE EVALUATING"
 
 
 @app.route('/cluster-k/<number>')
@@ -241,6 +276,23 @@ def label_truth_post():
     nodes = evaluation_service.get_unlabeled_nodes()
     clusters = evaluation_service.get_ground_truth()
     return render_template("submit_ground_truth.html", nodes=nodes, clusters=clusters, success=True)
+
+from itertools import combinations
+@app.route('/label-relations-from-ground')
+def label_relations_from_ground():
+    clusters = evaluation_service.get_ground_truth()
+
+    edges = node_service.get_unlabelled_matches()
+    for cluster in clusters:
+        combination = list(combinations(cluster, 2))
+        for (fromTable, toTable) in combination:
+            edge = next((item for item in edges if (item['from'] == fromTable or item['from'] == toTable) and (item['to'] == fromTable or item['to'] == toTable)), None)
+
+            if edge:
+                # match_service.add_truth(edge['id'], True)
+                configuration.update_weight(edge['id'], True)
+
+    return "OK"
 
 # export FLASK_ENV=development
 app.run(debug=True)

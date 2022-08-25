@@ -1,17 +1,23 @@
 import pandas as pd
-from . import matching_techniques, match_service, node_service
+from . import matching_techniques, match_service, node_service, configuration
+from sklearn import preprocessing
+import numpy as np
 
 MATRIX_LOCATION = './exports/matrix.csv'
-COMBINE_STRATEGY = 'WEIGHTED_AVERAGE'
-
-def set_aggregation_strategy(strategy):
-    global COMBINE_STRATEGY
-    COMBINE_STRATEGY = strategy
-
 
 def initialize_matrix():
     matching_edges = node_service.get_matches()
     matching_experts = list(map(lambda variant: variant['type'], matching_techniques.VARIANTS))
+
+    if configuration.NORMALIZE:
+        print("NORMALIZING")
+        for expert in matching_experts:
+            corresponding = np.array(list(map(lambda x: x['scores'][expert], matching_edges)))
+
+            xmin = min(corresponding) 
+            xmax = max(corresponding)
+            for i, x in enumerate(corresponding):
+                matching_edges[i]['scores'][expert] = (x-xmin) / (xmax-xmin)
 
     # Matrix:     EDGES x EXPERTS
     data = list(map(lambda edge: { edge['id']: list(edge['scores'].values()) }, matching_edges))
@@ -36,9 +42,9 @@ def calculate_score():
         data = matrix[str(edge['id'])].head(len(expert_weights))
 
         score = 0
-        if COMBINE_STRATEGY == 'MAX':
+        if configuration.COMBINE_STRATEGY == configuration.STRATEGIES[0]:
             score = max_score(data)
-        elif COMBINE_STRATEGY == 'WEIGHTED_AVERAGE':
+        elif configuration.COMBINE_STRATEGY == configuration.STRATEGIES[1]:
             score = weighted_score(data)
 
         score_row[str(edge['id'])] = score
@@ -71,3 +77,7 @@ def get_scores():
     matrix = pd.read_csv(MATRIX_LOCATION, index_col=0)
     scores = matrix.loc['score']
     return scores
+
+def get_matrix():
+    matrix = pd.read_csv(MATRIX_LOCATION, index_col=0)
+    return matrix
