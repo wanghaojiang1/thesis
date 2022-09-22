@@ -1,4 +1,4 @@
-from . import matching_techniques, node_service, matrix
+from . import matching_techniques, node_service, matrix, configuration
 from tqdm import tqdm
 import os
 import numpy as np
@@ -181,7 +181,10 @@ def _adjust_weight(weight, contribution):
 
 def reset_expert_weights():
     raw_expert_weights = get_raw_expert_weights()
-    new_expert_weights = {k: 1.0 for k, v in raw_expert_weights.items()}
+    new_expert_weights = {}
+    # new_expert_weights = {k: 1.0 for k, v in raw_expert_weights.items()}
+    for matcher in matching_techniques.VARIANTS:
+        new_expert_weights[matcher["type"]] = 1.0
 
     _save_expert_weights(new_expert_weights)
 

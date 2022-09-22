@@ -7,7 +7,6 @@ LEARNING_RATE = 0.1
 # Optimism: Start with thinking all experts are the best
 # Punish all wrong decisions made by them
 def multiplicative_weight_update(edge_id, correct=False):
-    print('DOING IT')
     edge = node_service.get_match(edge_id)
     expert_weights = get_raw_expert_weights()
 
@@ -24,9 +23,7 @@ def multiplicative_weight_update(edge_id, correct=False):
         new_weight = _decrease_weight(expert_weights[key], value, truth) if (bool(value > 0) ^ correct) else expert_weights[key]
         expert_weights.update({key: new_weight})
     
-    print(expert_weights)
     _save_expert_weights(expert_weights)
-    print('saved')
     
     # TODO: label the edge such that we don't label everything more than once
     node_service.label_edge(edge_id)
@@ -73,10 +70,8 @@ def reinforcement_learning(edge_id, correct=False):
 
         expert_weights.update({key: new_weight})
 
-    print(expert_weights)
     _save_expert_weights(expert_weights)
-    print('saved')
-
+    
     node_service.label_edge(edge_id)
 
 

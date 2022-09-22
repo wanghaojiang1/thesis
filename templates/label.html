@@ -1,0 +1,75 @@
+{% extends "frame.html" %}
+{% block content %}
+  {% if (success) %}
+    <div class="container alert alert-success" role="alert" style="display:none">
+      <strong>Success!</strong> Cluster is made
+    </div>
+  {% endif %}
+  <div class="container text-center" style="margin-top:30px">
+    <div class="container">
+        <h2 class="text-center"><b>Construct ground truth clusters</b></h2>
+        <small><i>Select all correlated columns and click on the "Create cluster" button to submit the cluster <br> <b>Scroll down</b> to see the submitted clusters</i></small>
+        <br>
+        <form method='post' style="margin-bottom:50px; margin-top:20px">
+            <div class="form-group">
+            <label for="columnID"><b>Table columns</b></label>
+            <select class="form-select form-control" name="columnID" id="columnID" size="20" multiple  aria-label="multiple select" required>
+                {% for node in nodes %}
+                <option value={{ node }}>{{ node }}</option>
+                {% endfor %}
+            </select>
+            </div>
+            <br>
+            <button type="submit" class="btn btn-primary">Create cluster</button>
+        </form>
+    </div>
+
+    <div class="container" style="margin-top:80px;">
+      <h2 class="text-center"><b>Submitted ground truth clusters</b></h2>
+      <small><i>The submitted clusters are shown below</i></small>
+      <div style="margin-top:20px">
+      {% for cluster in clusters %}
+          {% if loop.index % 2 != 0%}
+            <div class="row gx-5 mb-5">
+          {% endif%}
+          <div class="col-6">
+            <div class="card">
+              <div class="card-header"><b>Cluster {{loop.index}}</b></div>
+              <div class="card-body text-dark">
+                <ul style="list-style-type:none">
+                  {% for item in cluster %}
+                    <li>{{item}}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </div>
+          {% if loop.index % 2 == 0%}
+            </div>
+          {% endif%}
+        {% endfor %}
+      </div>
+    </div>
+    <br>
+    <!-- <div class="row text-center"> -->
+      <button class="btn btn-primary" id="label" style="margin-bottom: 30px;">Submit truth</button>
+    <!-- </div> -->
+    {% if (success) %}
+      <script>
+        window.setTimeout(function() {
+          $(".alert").slideDown(250).delay(2000).fadeTo(250, 0).slideUp(250, function(){
+            $(this).remove(); 
+          });
+        }, 1000);
+      </script>
+    {% endif %}
+
+    <script>
+      $('#label').click(function () {
+        $.get('/label-from-ground', function(data, status) {
+          alert(data);
+        });
+      })
+    </script>
+  </div>
+{% endblock %}

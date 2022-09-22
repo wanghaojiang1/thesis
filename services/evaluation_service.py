@@ -104,7 +104,6 @@ def create_matchers_best_metric_bar_chart(precision, recall, f_measure):
     return
 
 def create_matchers_metric_graphs():
-    print("YASSS")
     ground_truth = get_ground_truth()
     matches = node_service.get_matches()
     precision_map = {}

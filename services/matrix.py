@@ -2,6 +2,7 @@ import pandas as pd
 from . import matching_techniques, match_service, node_service, configuration
 from sklearn import preprocessing
 import numpy as np
+import os
 
 MATRIX_LOCATION = './exports/matrix.csv'
 
@@ -81,3 +82,9 @@ def get_scores():
 def get_matrix():
     matrix = pd.read_csv(MATRIX_LOCATION, index_col=0)
     return matrix
+
+def reset():
+    if os.path.exists(MATRIX_LOCATION):
+        os.remove(MATRIX_LOCATION)
+    else:
+        print("The file: {} does not exist".format(MATRIX_LOCATION))

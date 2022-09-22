@@ -9,7 +9,7 @@ from imblearn.over_sampling import SMOTE
 
 def evaluate():
     edges = match_service._get_collective_labelled_edges()
-    print(len(edges))
+    
     x = list(map(lambda edge: {**edge['scores']}, edges))
     y =  list(map(lambda edge: {'truth': 1 if edge['correct'] else 0 }, edges))
 

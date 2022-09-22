@@ -168,3 +168,15 @@ def _save_parsed_clusters(clusters):
 
 def _clusters_exists():
     return os.path.exists('./exports/clusters.json')
+
+def reset():
+    remove_file(DENDROGRAM_LOCATION)
+    remove_file(LINKAGE_LOCATION)
+    remove_file(MATRIX_LOCATION)
+    remove_file('./exports/clusters.json')
+
+def remove_file(location):
+    if os.path.exists(location):
+        os.remove(location)
+    else:
+        print("The file: {} does not exist".format(location))

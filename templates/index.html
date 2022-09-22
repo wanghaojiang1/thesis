@@ -145,7 +145,7 @@
             color: #343a40;
             text-transform: uppercase;
             font-size: 9px;
-            width: 33.33%;
+            width: 25%;
             float: left;
             position: relative;
             letter-spacing: 1px;
@@ -214,14 +214,15 @@
 </head>
 <body class="d-flex flex-column h-100">
     <!-- MultiStep Form -->
-<div class="row mt-5 pt-4">
-    <div class="col-md-6 offset-md-3">
-        <form id="msform">
+<div class="row mt-5 pt-4" style="width:100%;">
+    <div class="col-md-8 offset-md-2">
+        <form id="msform" method="post" >
             <!-- progressbar -->
             <ul id="progressbar">
                 <li class="active">Matcher Selection</li>
                 <li>Cutoff Threshold</li>
                 <li>Method</li>
+                <li>Data</li>
             </ul>
             <!-- fieldsets -->
             <fieldset>
@@ -230,26 +231,26 @@
                 <!-- <input type="text" name="fname" placeholder="First Name"/>
                 <input type="text" name="lname" placeholder="Last Name"/>
                 <input type="text" name="phone" placeholder="Phone"/> -->
-                <div class="container matcher-selection col offset-3">
+                <div class="container matcher-selection col offset-3 form">
                     <div class="form-check form-switch text-start">
-                        <input class="form-check-input" type="checkbox" id="coma">
-                        <label class="form-check-label" for="flexSwitchCheckDefault">Coma</label>
+                        <input class="form-check-input" type="checkbox" id="coma" name="matcher" value='0'>
+                        <label class="form-check-label" for="coma">Coma</label>
                     </div>
                     <div class="form-check form-switch text-start">
-                        <input class="form-check-input" type="checkbox" id="coma++">
-                        <label class="form-check-label" for="flexSwitchCheckChecked">Coma++</label>
+                        <input class="form-check-input" type="checkbox" id="coma++" name="matcher" value='1'>
+                        <label class="form-check-label" for="coma++">Coma++</label>
                     </div>
                     <div class="form-check form-switch text-start">
-                        <input class="form-check-input" type="checkbox" id="cupid">
-                        <label class="form-check-label" for="flexSwitchCheckDisabled">Cupid</label>
+                        <input class="form-check-input" type="checkbox" id="cupid" name="matcher" value='2'>
+                        <label class="form-check-label" for="cupid">Cupid</label>
                     </div>
                     <div class="form-check form-switch text-start">
-                        <input class="form-check-input" type="checkbox" id="distribution">
-                        <label class="form-check-label" for="flexSwitchCheckCheckedDisabled">Distribution Based</label>
+                        <input class="form-check-input" type="checkbox" id="distribution" name="matcher" value='3'>
+                        <label class="form-check-label" for="distribution">Distribution Based</label>
                     </div>
                     <div class="form-check form-switch text-start">
-                        <input class="form-check-input" type="checkbox" id="similarity">
-                        <label class="form-check-label" for="flexSwitchCheckCheckedDisabled">Similarity Flooding</label>
+                        <input class="form-check-input" type="checkbox" id="similarity" name="matcher" value='4'>
+                        <label class="form-check-label" for="similarity">Similarity Flooding</label>
                     </div>
                 </div>
                 <input type="button" name="next" class="next action-button" value="Next"/>
@@ -266,28 +267,28 @@
             </fieldset>
             <fieldset>
                 <h2 class="fs-title">Select your Method</h2>
-                <h3 class="fs-subtitle">Fill in your credentials</h3>
+                <h3 class="fs-subtitle">Select the method you want to learn the weights for</h3>
                 <div class="container matcher-selection col offset-3">
                     <div class="form-check text-start">
-                        <input class="form-check-input" type="radio" name="flexRadioDefault" id="multiplicative">
+                        <input class="form-check-input" type="radio" name="method" id="multiplicative" value='0' checked>
                         <label class="form-check-label" for="multiplicative">
                           Multiplicative Weight Update 
                         </label>
                       </div>
                       <div class="form-check text-start">
-                        <input class="form-check-input" type="radio" name="flexRadioDefault" id="reinforcement" checked>
+                        <input class="form-check-input" type="radio" name="method" id="reinforcement" value='1'>
                         <label class="form-check-label" for="reinforcement">
                           Reinforcement Learning
                         </label>
                       </div>
                       <div class="form-check text-start">
-                        <input class="form-check-input" type="radio" name="flexRadioDefault" id="linear">
+                        <input class="form-check-input" type="radio" name="method" id="linear" value='2'>
                         <label class="form-check-label" for="linear">
                           Linear Programming
                         </label>
                       </div>
                       <div class="form-check text-start">
-                        <input class="form-check-input" type="radio" name="flexRadioDefault" id="machine" checked>
+                        <input class="form-check-input" type="radio" name="method" id="machine" value='3'>
                         <label class="form-check-label" for="machine">
                           Machine Learning
                         </label>
@@ -295,7 +296,27 @@
                 </div>
                 <br>
                 <input type="button" name="previous" class="previous action-button-previous" value="Previous"/>
+                <input type="button" name="next" class="next action-button" value="Next"/>
+            </fieldset>
+            <fieldset class="last">
+                <h2 class="fs-title">Select your data space</h2>
+                <h3 class="fs-subtitle">Select the data you want to use</h3>
+                <div class="container matcher-selection col offset-3">
+                    {% for space in data_space %}
+                        <div class="form-check text-start">
+                            <input class="form-check-input" type="radio" name="data" id="data-{{space['value']}}" value='{{ space['value'] }}'>
+                            <label class="form-check-label" for="multiplicative">
+                                {{ space['name'] }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+                <br>
+                <input type="button" name="previous" class="previous action-button-previous" value="Previous"/>
                 <input type="submit" name="submit" class="submit action-button" value="Submit"/>
+            </fieldset>
+            <fieldset class="loader">
+
             </fieldset>
         </form>
     </div>
@@ -309,7 +330,6 @@ var left, opacity, scale; //fieldset properties which we will animate
 var animating; //flag to prevent quick multi-click glitches
 
 $(".next").click(function(){
-    console.log("JUPPP")
 	if(animating) return false;
 	animating = true;
 	
@@ -382,8 +402,37 @@ $(".previous").click(function(){
 	});
 });
 
-$(".submit").click(function(){
-	return false;
+// $(".submit").click(function(){
+
+//     let matcherSelection = []
+//     let cutoffThreshold = 0
+//     let method = 0
+
+
+
+//     console.log($("#coma"))
+
+// 	return false;
+// })
+
+$(".submit").click(function() {
+    $("#msform").submit();
+
+    $('.last').children().each(function () {
+        let child = $(this);
+        child.attr("hidden", true);
+    });
+
+    $('.last').append(`
+        <div class="spinner-border text-primary" style="width: 6rem; height: 6rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <br>
+        <br>
+        <small>Matchers are running ... </small>
+    `);
+
+    return true;
 })
 </script>
 </body>

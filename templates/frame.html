@@ -8,23 +8,39 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
     <!-- <script type="text/javascript" src="https://code.jquery.com/jquery-1.7.1.min.js"></script> -->
 
+    <script src="https://use.fontawesome.com/releases/v5.15.4/js/all.js"></script>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     {% block style %}
     {% endblock %}
 </head>
-<body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+<body class="d-flex flex-column h-100">
+  <nav class="navbar navbar-expand-lg navbar-dark" style="background-color:#00a6d6;">
     <div class="container-fluid container">
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTogglerDemo01" aria-controls="navbarTogglerDemo01" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0" style="align-items: center;
+        display: flex;">
+          <a class="navbar-brand" href="#">
+            <img src="https://preview.redd.it/0r631in77rty.png?width=640&crop=smart&auto=webp&s=e87d233941d461aae87d4d404dc7bb60036417f0" width="50" height="50" alt="">
+          </a>
           <li class="nav-item">
+            <a class="nav-link" href="/label">Label edges</a>
+          </li>
+          <li class="nav-item">
+            <div class="btn-group">
+              <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#settingModal">
+                <i class="fa fa-cog"></i>
+              </button>
+            </div>
+          </li>
+          <!-- <li class="nav-item">
             <a class="nav-link" href="/label-relations">Label edges</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link active" href="/cluster">Cluster columns</a>
+            <a class="nav-link" href="/cluster">Cluster columns</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="/results">View clusters</a>
@@ -33,7 +49,6 @@
             <a class="nav-link" href="/label-truth">Label ground truth</a>
           </li>
           <li class="nav-item">
-            <!-- Example single danger button -->
             <div class="btn-group">
                 <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
@@ -43,24 +58,71 @@
                 </button>
                 <ul class="dropdown-menu">
                 <li>
-                    <!-- <form class="dropdown-item"> -->
-                        <select class="dropdown-item form-control-md form-select">
-                            <option>Small select</option>
-                            <option>kkr select</option>
-                        </select>
-                    <!-- </form> -->
+                    <select class="dropdown-item form-control-md form-select">
+                        <option>Small select</option>
+                        <option>kkr select</option>
+                    </select>
                 </li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="#">Another action</a></li>
                 </ul>
             </div>
-          </li>
+          </li> -->
         </ul>
       </div>
     </div>
   </nav>
+  <div class="modal fade" id="settingModal" tabindex="-1" aria-labelledby="settingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settingModalLabel">Settings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <b><label class="form-label">Selected matchers</label></b>
+              {% for matcher in configuration['matchers'] %}
+                <br>
+                {{ matcher }}
+              {% endfor %}
+            </div>
+            <hr class="border-2 border-top">
+            <div class="mb-3">
+              <b><label class="form-label">Cutoff threshold</label></b> <br>
+              <input type="range" value="0" min="0" max="1" step="0.01" oninput="this.nextElementSibling.value = this.value" orient="vertical" name="threshold" id="threshold">
+                <output>{{ configuration['cutoff'] }}</output>
+            </div>
+            <hr class="border-2 border-top">
+            <div class="mb-3">
+              <b><label class="form-label">Method</label></b>
+              <select class="form-select" aria-label="Default select example">
+                <option value="multiplicative">Multiplicative Weight Update Method</option>
+                <option value="reinforcement">Reinforcement Learning</option>
+                <option value="linear">Linear Programming</option>
+                <option value="machine">Machine Learning</option>
+              </select>
+            </div>
+            <hr class="border-2 border-top">
+            <div class="mb-3">
+              <b><label class="form-label">Data space</label></b> <br>
+              {{ configuration['dataspace'] }}
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
   {% block content %}
   {% endblock %}
 </body>
-<footer>
+<footer class="footer mt-auto py-3 bg-light">
+  <div class="container text-center">
+      <span class="text-muted">© 2022 Copyright: <strong>Delft University of Technology</strong></span>
+  </div>
 </footer>

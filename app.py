@@ -28,17 +28,79 @@ def add_header(response):
 import subprocess
 @app.route("/")
 def hello_world():
-    return render_template("index.html")
+    data_spaces = configuration.DATA_SPACES
+    spaces = []
+    print(data_spaces)
+    for index, space in enumerate(data_spaces):
+        spaces.append({'value': index, 'name': space})
+    return render_template("index.html", data_space=spaces)
 
-@app.route("/test")
-def test():
-    # support_vector_machine_module.evaluate()
-    # circos_module.export_graph()
-    # print(node_service.get_matches())
-    # node_service.get_matches()
-    configuration.update_weight(12145, True)
-    return "<p>Hello, World!</p>"
+@app.route("/", methods = ['POST'])
+def submit_settings():
+    print("GETTING CALLED")
+    matchers = list(map(lambda x: int(x), request.form.getlist('matcher')))
+    cutoff = float(request.form.get('threshold'))
+    method = int(request.form.get('method'))
+    data_space = int(request.form.get('data'))
 
+    configuration.set_matchers(matchers)
+    configuration.set_threshold(cutoff)
+    configuration.set_training_module(method)
+    configuration.set_data_space(data_space)
+
+    configuration.export_configurations()
+
+    # evaluation_service.reset_ground_truth()
+    # evaluation_service.reset_evaluations()
+    # match_service.reset_expert_weights()
+    # clustering_service.reset()
+    # matrix.reset()
+
+    # purge()
+    # initialise_tables()
+    # profile()
+    
+    return redirect("/label")
+
+@app.route("/label")
+def label_view():
+    nodes = evaluation_service.get_unlabeled_nodes()
+    clusters = evaluation_service.get_ground_truth()
+    configurations = configuration.get_configuration()
+
+    print(configurations)
+    return render_template("label.html", nodes=nodes, clusters=clusters, configuration=configurations)
+
+@app.route('/label', methods=['POST'])
+def label_post():
+    cluster = request.form.getlist('columnID')
+    evaluation_service.save_ground_truth(cluster)
+
+    nodes = evaluation_service.get_unlabeled_nodes()
+    clusters = evaluation_service.get_ground_truth()
+    return render_template("label.html", nodes=nodes, clusters=clusters, success=True)
+
+@app.route('/label-from-ground')
+def label_from_ground():
+    clusters = evaluation_service.get_ground_truth()
+
+    edges = node_service.get_unlabelled_matches()
+    # Label all related edges from ground truth
+    for cluster in clusters:
+        combination = list(combinations(cluster, 2))
+        for (fromTable, toTable) in combination:
+            edge = next((item for item in edges if (item['from'] == fromTable or item['from'] == toTable) and (item['to'] == fromTable or item['to'] == toTable)), None)
+
+            if edge:
+                # match_service.add_truth(edge['id'], True)
+                configuration.update_weight(edge['id'], True)
+
+    # Label all unrelated edges
+    edges = node_service.get_unlabelled_matches()
+    for edge in edges:
+        configuration.update_weight(edge['id'], False)
+
+    return "OK"
 
 @app.route("/get-matcher-performance")
 def get_matcher_performance():
@@ -131,8 +193,8 @@ def get_match(edge_id):
 @app.route("/initialise")
 def initialise_tables():
     done = []
-    for filename in os.listdir('./tables/{}'.format(DATA_SPACE)):
-        f = os.path.join('./tables/{}'.format(DATA_SPACE), filename)
+    for filename in os.listdir('./tables/{}'.format(configuration.DATA_SPACE)):
+        f = os.path.join('./tables/{}'.format(configuration.DATA_SPACE), filename)
         df = pd.read_csv(f, nrows=10)
 
         for column in df.columns:
@@ -149,14 +211,11 @@ def initialise_tables():
 @app.route("/profile")
 def profile():
     tables = node_service.get_tables()
-    print("TABLES: ", tables)
     for x in range(0, len(tables)):
-        table1_path = os.path.join('./tables/{}'.format(DATA_SPACE), tables[x])
-        print('reading x')
+        table1_path = os.path.join('./tables/{}'.format(configuration.DATA_SPACE), tables[x])
         df1 = pd.read_csv(table1_path, engine='python', on_bad_lines='skip')
         for y in range(x + 1, len(tables)):
-            table2_path = os.path.join('./tables/{}'.format(DATA_SPACE), tables[y])
-            print('reading y')
+            table2_path = os.path.join('./tables/{}'.format(configuration.DATA_SPACE), tables[y])
             df2 = pd.read_csv(table2_path, engine='python', on_bad_lines='skip')
             print(" ---- MATCHING:" + tables[x] + " " + tables[y])
             matches = match_service.match_with_all_techniques(df1, df2)
@@ -182,7 +241,7 @@ def label():
     return render_template("label_relations.html", relationships=matching_edges)
 
 @app.route('/label-relations', methods = ['POST'])
-def label_post():
+def label_relation_post():
     edges_to_label = request.form.getlist('relationID')
     correct = True if request.form.get('correct') == 'true' else False
 
