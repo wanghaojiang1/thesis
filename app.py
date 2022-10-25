@@ -6,13 +6,20 @@ import operator
 import sys
 import json
 import pandas as pd
-from services import node_service, match_service, clustering_service, evaluation_service, matrix, linear_programming_module, circos_module, configuration
+from tqdm import tqdm
+from services import node_service, match_service, clustering_service, evaluation_service, matrix, linear_programming_module, circos_module, configuration, update_weights
 
 app = Flask('app')
 
 # ACTIAVTE ENVIRONMENT: source ./newvenv/bin/activate
 
 DATA_SPACE = "TPC-H"
+
+@app.route("/test")
+def test():
+    node_service.unlabel_edges()
+    return 'OK'
+
 
 @app.after_request
 def add_header(response):
@@ -35,6 +42,12 @@ def hello_world():
         spaces.append({'value': index, 'name': space})
     return render_template("index.html", data_space=spaces)
 
+@app.route("/export-clusters")
+def export_clusters():
+    circos_module.export_graph()    
+
+    return 'OK'
+
 @app.route("/", methods = ['POST'])
 def submit_settings():
     print("GETTING CALLED")
@@ -50,15 +63,15 @@ def submit_settings():
 
     configuration.export_configurations()
 
-    # evaluation_service.reset_ground_truth()
-    # evaluation_service.reset_evaluations()
-    # match_service.reset_expert_weights()
-    # clustering_service.reset()
-    # matrix.reset()
+    evaluation_service.reset_ground_truth()
+    evaluation_service.reset_evaluations()
+    match_service.reset_expert_weights()
+    clustering_service.reset()
+    matrix.reset()
 
-    # purge()
-    # initialise_tables()
-    # profile()
+    purge()
+    initialise_tables()
+    profile()
     
     return redirect("/label")
 
@@ -75,10 +88,11 @@ def label_view():
 def label_post():
     cluster = request.form.getlist('columnID')
     evaluation_service.save_ground_truth(cluster)
+    configurations = configuration.get_configuration()
 
     nodes = evaluation_service.get_unlabeled_nodes()
     clusters = evaluation_service.get_ground_truth()
-    return render_template("label.html", nodes=nodes, clusters=clusters, success=True)
+    return render_template("label.html", nodes=nodes, clusters=clusters, success=True, configuration=configurations)
 
 @app.route('/label-from-ground')
 def label_from_ground():
@@ -94,11 +108,15 @@ def label_from_ground():
             if edge:
                 # match_service.add_truth(edge['id'], True)
                 configuration.update_weight(edge['id'], True)
+                edges.remove(edge)
 
     # Label all unrelated edges
-    edges = node_service.get_unlabelled_matches()
-    for edge in edges:
-        configuration.update_weight(edge['id'], False)
+    # edges = node_service.get_unlabelled_matches()
+    print("LABELLING UNRELATED EDGES")
+    # for edge in tqdm(edges):
+    #     configuration.update_weight(edge['id'], False)
+
+    update_weights.linear_programming_list(edges, False)
 
     return "OK"
 
@@ -122,13 +140,13 @@ def get_weights(t):
 
 @app.route("/backup")
 def backup():
-    subprocess.run('pg_dump -h localhost -U root -d thesis -Fc > /mnt/e/Educational/Thesis/Code/thesis/exports/backups/dump.sql', shell=True)
+    subprocess.run('pg_dump -h localhost -U root -d thesis -Fc > /mnt/c/Users/PY01RD/OneDrive\ -\ ING/Documents/thesis/exports/backups/dump.sql', shell=True)
     return "OK"
 
 @app.route("/restore")
 def restore():
     database.dropTables()
-    subprocess.run('pg_restore -h localhost -U root -d thesis -vcC --clean < /mnt/e/Educational/Thesis/Code/thesis/exports/backups/dump.sql', shell=True)
+    subprocess.run('pg_restore -h localhost -U root -d thesis -vcC --clean < /mnt/c/Users/PY01RD/OneDrive\ -\ ING/Documents/thesis/exports/backups/dump.sql', shell=True)
     return "Restored"
 
 @app.route("/get-matches")
@@ -153,9 +171,9 @@ def metrics_at(k):
 
 @app.route("/set-aggregation/<strategy>")
 def set_aggregation_strategy(strategy):
-    matrix.set_aggregation_strategy(strategy)
+    configuration.set_aggregation_strategy(strategy)
     
-    return f"OK, new aggregation strategy: {matrix.COMBINE_STRATEGY}"
+    return f"OK, new aggregation strategy: {configuration.COMBINE_STRATEGY}"
 
 @app.route("/set-normalization/<strategy>")
 def set_normalization(strategy):
@@ -213,10 +231,10 @@ def profile():
     tables = node_service.get_tables()
     for x in range(0, len(tables)):
         table1_path = os.path.join('./tables/{}'.format(configuration.DATA_SPACE), tables[x])
-        df1 = pd.read_csv(table1_path, engine='python', on_bad_lines='skip')
+        df1 = pd.read_csv(table1_path, engine='python', on_bad_lines='skip', encoding = 'latin1')
         for y in range(x + 1, len(tables)):
             table2_path = os.path.join('./tables/{}'.format(configuration.DATA_SPACE), tables[y])
-            df2 = pd.read_csv(table2_path, engine='python', on_bad_lines='skip')
+            df2 = pd.read_csv(table2_path, engine='python', on_bad_lines='skip', encoding = 'latin1')
             print(" ---- MATCHING:" + tables[x] + " " + tables[y])
             matches = match_service.match_with_all_techniques(df1, df2)
             distinct_matches = set([y for x in list(matches.values()) for y in x])
@@ -258,27 +276,31 @@ def label_relation_post():
 @app.route('/cluster')
 def cluster():
     expert_weights = match_service.get_raw_expert_weights()
-    return render_template("hierarchical_clustering.html", weights=expert_weights)
+    configurations = configuration.get_configuration()
+
+    return render_template("hierarchical_clustering.html", weights=expert_weights, configuration=configuration)
 
 @app.route('/cluster', methods = ['POST'])
 def cluster_post():
+    print("CLUSTERING")
     clustering_service.cluster()
     expert_weights = match_service.get_raw_expert_weights()
     evaluation_service.reset_evaluations()
-    
+    configurations = configuration.get_configuration()
     # clusters = clustering_service.get_clusters()['clusters']
     # ground_truth = evaluation_service.get_ground_truth()
     # evaluation = evaluation_service.evaluate_clusters(clusters, ground_truth)
     # evaluation_service.save_evaluation(evaluation)
 
-    return render_template("hierarchical_clustering.html", weights=expert_weights, success=True)
+    return render_template("hierarchical_clustering.html", weights=expert_weights, success=True, configuration=configuration)
 
 @app.route('/results')
 def results():
     clusters = clustering_service.get_clusters()
     evaluations = evaluation_service.get_evaluations()
+    configurations = configuration.get_configuration()
 
-    return render_template("results.html", setting=clusters['setting'], clusters=clusters['clusters'], threshold=clustering_service.CLUSTERING_THRESHOLD, evaluations=evaluations)
+    return render_template("results.html", setting=clusters['setting'], clusters=clusters['clusters'], threshold=clustering_service.CLUSTERING_THRESHOLD, evaluations=evaluations, configuration=configuration)
 
 @app.route('/best-cluster/<number>')
 def best_clusters(number):
@@ -355,3 +377,4 @@ def label_relations_from_ground():
 
 # export FLASK_ENV=development
 app.run(debug=True)
+conf = configuration.get_configuration()

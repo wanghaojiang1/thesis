@@ -19,22 +19,27 @@ LINKAGE_LOCATION = './exports/linkage_matrix.npy'
 DENDROGRAM_LOCATION = './exports/dendrogram.png'
 
 def clusterk(k):
-    matrix.initialize_matrix()
-    scores = matrix.calculate_score()
+    # matrix.initialize_matrix()
 
-    nodes = node_service.get_nodes()
-    proximity_matrix = _create_proximity_matrix(nodes, scores)
+    # print("CALCULATING MATRIX SCORE")
+    # scores = matrix.calculate_score()
+    # scores = matrix.get_scores()
 
+    # nodes = node_service.get_nodes()
+    # proximity_matrix = _create_proximity_matrix(nodes, scores)
+    proximity_matrix = _get_proximity_matrix()
+
+    print("CLUSTERING")
     cluster = AgglomerativeClustering(n_clusters=k, affinity='euclidean', linkage='ward')
     cluster.fit_predict(proximity_matrix)
     parsed_clusters = _parse_clusters(cluster.labels_)
 
-    make_plot()
     _save_parsed_clusters(parsed_clusters)
     set_clustering_threshold(k)
+    make_plot()
 
 def cluster():
-    matrix.initialize_matrix()
+    # matrix.initialize_matrix()
     scores = matrix.calculate_score()
 
     nodes = node_service.get_nodes()
@@ -42,15 +47,15 @@ def cluster():
     clusters = _hierarchical_clustering(proximity_matrix)
     parsed_clusters = _parse_clusters(clusters)
 
-    make_plot()
     _save_parsed_clusters(parsed_clusters)
+    make_plot()
 
 def update_cluster(threshold):
     set_clustering_threshold(threshold)
     clusters = cluster_linkage_matrix(get_linkage())
     parsed_clusters = _parse_clusters(clusters)
-    make_plot()
     _save_parsed_clusters(parsed_clusters)
+    make_plot()
 
 def _create_proximity_matrix(nodes, scores):
     # Provided that the scores are in the range of [0, 1]
@@ -111,7 +116,7 @@ def cluster_linkage_matrix(Z):
 def make_plot():
     Z = get_linkage()
     show_plot(Z)
-    shutil.copy(DENDROGRAM_LOCATION, './static/dendrogram.png')
+    shutil.copyfile(DENDROGRAM_LOCATION, './static/dendrogram.png')
 
 def show_plot(Z):
     fig, ax = plt.subplots(figsize=(25, 10))
@@ -168,6 +173,11 @@ def _save_parsed_clusters(clusters):
 
 def _clusters_exists():
     return os.path.exists('./exports/clusters.json')
+
+def _get_proximity_matrix():
+    matrix = pd.read_csv('./exports/proximity_matrix.csv', index_col=0)
+    return matrix
+
 
 def reset():
     remove_file(DENDROGRAM_LOCATION)

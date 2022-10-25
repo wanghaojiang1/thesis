@@ -16,7 +16,7 @@ DATA_SPACE = ''
 
 # AGGREGATION
 STRATEGIES = ['WEIGHTED_AVERAGE', 'MAX']
-COMBINE_STRATEGY = STRATEGIES[0]
+COMBINE_STRATEGY = STRATEGIES[1]
 NORMALIZE = False
 
 MODULES = ['Multiplicative weight update', 'Reinforcement learning', 'Linear programming', 'Normalized linear programming']
@@ -118,6 +118,10 @@ def update_weight(edge_id, correct=False):
         update_weights.linear_programming(edge_id, correct)
 
 def get_configuration():
+
+	if os.path.exists("./exports/configuration.json"):
+		import_configurations()
+
 	configuration = {}
 
 	configuration['method'] = 'Machine Learning' if TRAINING_MODULE == -1 else TRAINING_MODULE

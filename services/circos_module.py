@@ -42,18 +42,19 @@ def export_graph():
             nodeCount += 1
         groupCount += 1
     
-    name_links = list(map(lambda x: x['source'], links))
-    for column, node_number in lookup.items():
-        if node_number not in name_links:
-            prev = group_lookup[group_lookup.Keys.ToList()[node_number - 1]]
-            next =  group_lookup[group_lookup.Keys.ToList()[node_number + 1]]
+    
+    # name_links = list(map(lambda x: x['source'], links))
+    # for column, node_number in lookup.items():
+    #     if node_number not in name_links:
+    #         prev = group_lookup[group_lookup.Keys.ToList()[node_number - 1]]
+    #         next =  group_lookup[group_lookup.Keys.ToList()[node_number + 1]]
             
-            if prev == group_lookup[column]:
-                links.append({'source': node_number, 'target': node_number - 1, 'value': 1, 'groupCount': group_lookup[column]})
-            else:
-                links.append({'source': node_number, 'target': node_number + 1, 'value': 1, 'groupCount': group_lookup[column]})
-        else:
-            print('k')
+    #         if prev == group_lookup[column]:
+    #             links.append({'source': node_number, 'target': node_number - 1, 'value': 1, 'groupCount': group_lookup[column]})
+    #         else:
+    #             links.append({'source': node_number, 'target': node_number + 1, 'value': 1, 'groupCount': group_lookup[column]})
+    #     else:
+    #         print('k')
     
     links = pd.DataFrame(links)
     nodes = hv.Dataset(pd.DataFrame(nodes), 'index')

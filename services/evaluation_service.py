@@ -240,10 +240,12 @@ def evaluate_relations_at(relations, ground_truth, k):
     return {'precision': p, 'recall': r, 'f-measure': f, 'k': k}
 
 def perform_evaluation():
+    print("PERFORMING EVALUATION")
     nodes = node_service.get_nodes()
     max = len(nodes)
 
-    for i in reversed(range(1, max)):
+    print("ITERATING THROUGH EVERY COLUMN")
+    for i in tqdm(reversed(range(1, max))):
         clustering_service.clusterk(i)
         clusters = clustering_service.get_clusters()['clusters']
         ground_truth = get_ground_truth()

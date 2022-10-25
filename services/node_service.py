@@ -1,5 +1,6 @@
 from utils import database
 from . import configuration
+from tqdm import tqdm
 
 def get_nodes():
     cursor = database.getConnection()
@@ -97,7 +98,8 @@ def get_unlabelled_matches():
 
     result = []
 
-    for edge in edges:
+    print("GETTING UNLABELLED MATCHES")
+    for edge in tqdm(edges):
         # Retrieving table information
         edge_id = edge[0]
         sql = "SELECT edge_id, algorithm, similarity_score FROM matches WHERE edge_id=%s"
@@ -134,6 +136,13 @@ def label_edge(edge_id):
     cursor = database.getConnection()
     sql = 'UPDATE edges SET labelled=true WHERE edge_id=%s'
     cursor.execute(sql, (edge_id, ))
+    database.commit()
+    return True
+
+def unlabel_edges():
+    cursor = database.getConnection()
+    sql = 'UPDATE edges SET labelled=false WHERE labelled=true'
+    cursor.execute(sql)
     database.commit()
     return True
 

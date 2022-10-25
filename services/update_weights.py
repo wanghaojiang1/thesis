@@ -1,6 +1,7 @@
 from . import matching_techniques, node_service, matrix
 import os
 import json
+from tqdm import tqdm
 
 LEARNING_RATE = 0.1
 
@@ -118,6 +119,30 @@ def linear_programming(edge_id, correct=False):
 
     _save_labelled_edge(result)
     node_service.label_edge(edge_id)
+
+def linear_programming_list(edges, correct=False):
+    scores = matrix.get_matrix()
+    expert_weights = matching_techniques.VARIANTS
+    total = []
+
+    for edge in tqdm(edges):
+        edge_id = edge['id']
+        edge_scores = scores[str(edge_id)].head(len(expert_weights)).to_dict()
+
+        result = {
+            'edge_id': edge_id,
+            'correct': correct,
+            'scores': edge_scores
+        }
+        total.append(result)
+
+    _save_labelled_edges(total)
+    # node_service.label_edge(edge_id)
+
+def _save_labelled_edges(result):
+    old_results = _get_labelled_edges()
+    with open("./exports/truth.json", "w") as outfile:
+        json.dump(old_results + result, outfile)
 
 def _save_labelled_edge(edge):
     result = [edge]

@@ -3,6 +3,7 @@ from . import matching_techniques, match_service, node_service, configuration
 from sklearn import preprocessing
 import numpy as np
 import os
+from tqdm import tqdm
 
 MATRIX_LOCATION = './exports/matrix.csv'
 
@@ -30,6 +31,8 @@ def initialize_matrix():
 # Disclaimer: function assumes that the expert_weights and the scores in the matix are in the same order
 # TODO: Come up with a better function of combining those signals into one score
 def calculate_score():
+    print("CALCULATING SCORE")
+    print(configuration.COMBINE_STRATEGY)
     matrix = pd.read_csv(MATRIX_LOCATION, index_col=0)
     matching_edges = node_service.get_matches()
     expert_weights = match_service.get_expert_weights()
@@ -39,13 +42,15 @@ def calculate_score():
         matrix.drop(['score'], inplace = True)
 
     score_row = {}
-    for edge in matching_edges:
+    print("CALCULATING SCORES")
+    for edge in tqdm(matching_edges):
         data = matrix[str(edge['id'])].head(len(expert_weights))
 
         score = 0
-        if configuration.COMBINE_STRATEGY == configuration.STRATEGIES[0]:
+        if configuration.COMBINE_STRATEGY == configuration.STRATEGIES[1]:
+            print("MAX SCORE")
             score = max_score(data)
-        elif configuration.COMBINE_STRATEGY == configuration.STRATEGIES[1]:
+        elif configuration.COMBINE_STRATEGY == configuration.STRATEGIES[0]:
             score = weighted_score(data)
 
         score_row[str(edge['id'])] = score
