@@ -16,8 +16,8 @@ DATA_SPACE = ''
 
 # AGGREGATION
 STRATEGIES = ['WEIGHTED_AVERAGE', 'MAX']
-COMBINE_STRATEGY = STRATEGIES[1]
-NORMALIZE = False
+COMBINE_STRATEGY = STRATEGIES[0]
+NORMALIZE = True
 
 MODULES = ['Multiplicative weight update', 'Reinforcement learning', 'Linear programming', 'Normalized linear programming']
 THRESHOLDS = [0, 0.5]

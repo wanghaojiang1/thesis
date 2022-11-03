@@ -39,7 +39,7 @@ def clusterk(k):
     make_plot()
 
 def cluster():
-    # matrix.initialize_matrix()
+    matrix.initialize_matrix()
     scores = matrix.calculate_score()
 
     nodes = node_service.get_nodes()

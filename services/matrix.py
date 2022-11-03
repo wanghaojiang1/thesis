@@ -8,6 +8,7 @@ from tqdm import tqdm
 MATRIX_LOCATION = './exports/matrix.csv'
 
 def initialize_matrix():
+    print("CREATING MATRIX")
     matching_edges = node_service.get_matches()
     matching_experts = list(map(lambda variant: variant['type'], matching_techniques.VARIANTS))
 
@@ -48,7 +49,6 @@ def calculate_score():
 
         score = 0
         if configuration.COMBINE_STRATEGY == configuration.STRATEGIES[1]:
-            print("MAX SCORE")
             score = max_score(data)
         elif configuration.COMBINE_STRATEGY == configuration.STRATEGIES[0]:
             score = weighted_score(data)
@@ -86,6 +86,7 @@ def get_scores():
 
 def get_matrix():
     matrix = pd.read_csv(MATRIX_LOCATION, index_col=0)
+
     return matrix
 
 def reset():

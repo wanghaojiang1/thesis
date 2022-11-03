@@ -112,11 +112,11 @@ def label_from_ground():
 
     # Label all unrelated edges
     # edges = node_service.get_unlabelled_matches()
-    print("LABELLING UNRELATED EDGES")
-    # for edge in tqdm(edges):
-    #     configuration.update_weight(edge['id'], False)
+    # print("LABELLING UNRELATED EDGES")
+    for edge in tqdm(edges):
+        configuration.update_weight(edge['id'], False)
 
-    update_weights.linear_programming_list(edges, False)
+    # update_weights.linear_programming_list(edges, False)
 
     return "OK"
 
@@ -140,13 +140,13 @@ def get_weights(t):
 
 @app.route("/backup")
 def backup():
-    subprocess.run('pg_dump -h localhost -U root -d thesis -Fc > /mnt/c/Users/PY01RD/OneDrive\ -\ ING/Documents/thesis/exports/backups/dump.sql', shell=True)
+    subprocess.run('pg_dump -h localhost -U root -d thesis -Fc > /mnt/e/Educational/Thesis/Code/thesis/exports/backups/dump.sql', shell=True)
     return "OK"
 
 @app.route("/restore")
 def restore():
     database.dropTables()
-    subprocess.run('pg_restore -h localhost -U root -d thesis -vcC --clean < /mnt/c/Users/PY01RD/OneDrive\ -\ ING/Documents/thesis/exports/backups/dump.sql', shell=True)
+    subprocess.run('pg_restore -h localhost -U root -d thesis -vcC --clean < /mnt/e/Educational/Thesis/Code/thesis/exports/backups/dump.sql', shell=True)
     return "Restored"
 
 @app.route("/get-matches")
@@ -282,7 +282,6 @@ def cluster():
 
 @app.route('/cluster', methods = ['POST'])
 def cluster_post():
-    print("CLUSTERING")
     clustering_service.cluster()
     expert_weights = match_service.get_raw_expert_weights()
     evaluation_service.reset_evaluations()
